@@ -4,6 +4,9 @@
 #include<ctype.h>
 #include<QFile>
 #include<unistd.h>
+#include<QNetworkInterface>
+#include<QStringList>
+#include<QTextCodec>
 ZTools::ZTools()
 {
 }
@@ -41,4 +44,51 @@ quint64 ZTools::ascii2hex(const char *ascii,int len)
 void ZTools::msleep(int msecs)
 {
     usleep(msecs * 1000);
+}
+int ZTools::getCarID()
+{
+    QList<QHostAddress> list = QNetworkInterface::allAddresses();
+    foreach(QHostAddress address,list)
+    {
+        QString ip = address.toString();
+        if(ip.startsWith("192.168."))
+        {
+            return ip.split(QChar('.'))[2].toInt();
+        }
+    }
+    return 0;
+}
+
+void ZTools::singleShot(int msecs,void (*member)())
+{
+    QTimer::singleShot(msecs,new ZTools(member),SLOT(Proxy()));
+}
+
+void ZTools::Proxy()
+{
+    _member();
+    delete this;
+}
+
+
+void ZTools::singleShot(int msecs,void (*member)(void*),void *data)
+{
+    QTimer::singleShot(msecs,new ZTools(member,data),SLOT(ProxyWithPara()));
+}
+void ZTools::ProxyWithPara()
+{
+    _member_with_para(_member_para);
+    delete this;
+}
+QByteArray ZTools::str2unicode(QString str)
+{
+    QByteArray bytes;
+    static QTextCodec* codec = QTextCodec::codecForName("UTF-8");
+    str = codec->toUnicode(str.toAscii().data());
+    foreach(const QChar& qChar,str)
+    {
+        bytes.append(qChar.unicode()>>8&0xff);
+        bytes.append(qChar.unicode()&0xff);
+    }
+    return bytes;
 }
